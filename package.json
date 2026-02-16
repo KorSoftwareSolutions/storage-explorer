@@ -1,0 +1,40 @@
+{
+  "name": "storage-explorer",
+  "version": "0.1.0",
+  "private": false,
+  "bin": {
+    "storage-explorer": "./cli.js"
+  },
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "Ion Korol",
+    "email": "ion@korol.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KorSoftwareSolutions/storage-explorer.git"
+  },
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "build": "bun run build.ts",
+    "start": "NODE_ENV=production bun src/index.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.990.0",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/bun": "latest"
+  },
+  "files": [
+    "src",
+    "dist",
+    "bin",
+    "bunfig.toml",
+    "package.json"
+  ]
+}
