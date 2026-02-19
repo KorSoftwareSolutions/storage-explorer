@@ -1,4 +1,5 @@
 import {
+  downloadObjectHandler,
   listBucketsHandler,
   listObjectsHandler,
   testConnectionHandler,
@@ -13,5 +14,8 @@ export const s3Routes = {
   },
   "/api/s3/list-objects": {
     POST: listObjectsHandler,
+  },
+  "/api/s3/download-object": {
+    POST: downloadObjectHandler,
   },
 };

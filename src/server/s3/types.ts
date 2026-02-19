@@ -13,3 +13,9 @@ export type ParsedListObjectsInput = {
   continuationToken?: string;
   maxKeys: number;
 };
+
+export type ParsedDownloadInput = {
+  profile: S3ProfileInput;
+  bucket: string;
+  key: string;
+};

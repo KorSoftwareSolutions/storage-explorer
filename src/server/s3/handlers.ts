@@ -1,4 +1,5 @@
 import {
+  GetObjectCommand,
   ListBucketsCommand,
   ListObjectsV2Command,
   S3ServiceException,
@@ -6,7 +7,7 @@ import {
 import { fail, ok } from "../http/response";
 import { createS3Client } from "./client";
 import { mapListBucketsResult, mapListObjectsResult, mapS3Error } from "./mappers";
-import { invalidProfileError, parseListObjectsInput, parseProfileFromBody } from "./validate";
+import { invalidProfileError, parseDownloadInput, parseListObjectsInput, parseProfileFromBody } from "./validate";
 
 async function parseJsonBody(req: Request): Promise<unknown> {
   try {
@@ -90,6 +91,43 @@ export async function listObjectsHandler(req: Request): Promise<Response> {
     );
 
     return ok(mapListObjectsResult(result, bucket, prefix));
+  } catch (err) {
+    return fail(400, mapS3Error(err));
+  }
+}
+
+export async function downloadObjectHandler(req: Request): Promise<Response> {
+  const body = await parseJsonBody(req);
+  const parsed = parseDownloadInput(body);
+
+  if (!parsed.ok) {
+    return fail(400, parsed.error);
+  }
+
+  const { profile, bucket, key } = parsed.data;
+  const client = createS3Client(profile);
+
+  try {
+    const result = await client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+
+    if (!result.Body) {
+      return fail(404, { message: "Object body is empty.", code: "EmptyBody" });
+    }
+
+    const filename = key.split("/").filter(Boolean).pop() ?? key;
+
+    return new Response(result.Body.transformToWebStream(), {
+      headers: {
+        "Content-Type": result.ContentType || "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        ...(result.ContentLength != null ? { "Content-Length": String(result.ContentLength) } : {}),
+      },
+    });
   } catch (err) {
     return fail(400, mapS3Error(err));
   }

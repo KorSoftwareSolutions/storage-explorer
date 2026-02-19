@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { BucketPanel } from "./features/buckets/BucketPanel";
 import { ObjectExplorer } from "./features/objects/ObjectExplorer";
 import { ProfileSidebar } from "./features/profiles/ProfileSidebar";
-import { listBuckets, listObjects, testConnection } from "./shared/api/s3Api";
+import { downloadObject, listBuckets, listObjects, testConnection } from "./shared/api/s3Api";
 import { useProfilesStorage } from "./shared/hooks/useProfilesStorage";
 import type {
   BucketItem,
@@ -74,6 +74,7 @@ export function App() {
   const [objects, setObjects] = useState<ObjectsPayload | null>(null);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [isNextPage, setIsNextPage] = useState(false);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -335,6 +336,27 @@ export function App() {
     await loadObjects({ bucket: selectedBucket, targetPrefix: prefix, continuationToken: null });
   };
 
+  const onDownloadFile = async (key: string) => {
+    if (!selectedBucket || !profileValid) {
+      return;
+    }
+
+    setDownloadingKey(key);
+    setStatusError("");
+
+    try {
+      await downloadObject({
+        profile: profilePayload(),
+        bucket: selectedBucket,
+        key,
+      });
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Download failed.");
+    } finally {
+      setDownloadingKey(null);
+    }
+  };
+
   return (
     <div className="app-shell">
       <ProfileSidebar
@@ -381,6 +403,8 @@ export function App() {
           onLoadNextPage={onLoadNextPage}
           onOpenFolder={onOpenFolder}
           onNavigatePrefix={onNavigatePrefix}
+          onDownloadFile={onDownloadFile}
+          downloadingKey={downloadingKey}
         />
       </main>
     </div>

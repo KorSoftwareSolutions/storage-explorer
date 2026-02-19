@@ -13,6 +13,8 @@ type ObjectExplorerProps = {
   onLoadNextPage: () => void;
   onOpenFolder: (folderPrefix: string) => void;
   onNavigatePrefix: (prefix: string) => void;
+  onDownloadFile: (key: string) => void;
+  downloadingKey: string | null;
 };
 
 function formatObjectName(key: string, prefix: string): string {
@@ -44,6 +46,8 @@ export function ObjectExplorer(props: ObjectExplorerProps) {
     onLoadNextPage,
     onOpenFolder,
     onNavigatePrefix,
+    onDownloadFile,
+    downloadingKey,
   } = props;
 
   return (
@@ -109,16 +113,25 @@ export function ObjectExplorer(props: ObjectExplorerProps) {
                 <span className="object-name">{formatFolderName(folder, prefix)}/</span>
                 <span className="object-meta">folder</span>
                 <span className="object-meta">-</span>
+                <span />
               </button>
             ))}
 
             {objects.files.map(file => (
-              <div key={file.key} className="object-row">
+              <div key={file.key} className="object-row file">
                 <span className="object-name">{formatObjectName(file.key, prefix)}</span>
                 <span className="object-meta">{file.size.toLocaleString()} bytes</span>
                 <span className="object-meta">
                   {file.lastModified ? new Date(file.lastModified).toLocaleString() : "-"}
                 </span>
+                <button
+                  type="button"
+                  className="download-button"
+                  onClick={() => onDownloadFile(file.key)}
+                  disabled={downloadingKey === file.key}
+                >
+                  {downloadingKey === file.key ? "Downloading..." : "Download"}
+                </button>
               </div>
             ))}
           </>

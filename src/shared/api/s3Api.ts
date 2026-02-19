@@ -54,3 +54,33 @@ export function listObjects(input: {
 }): Promise<ObjectsPayload> {
   return postJson<ObjectsPayload>("/api/s3/list-objects", input);
 }
+
+export async function downloadObject(input: {
+  profile: S3ConnectionProfile;
+  bucket: string;
+  key: string;
+}): Promise<void> {
+  const response = await fetch("/api/s3/download-object", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiErrorEnvelope | null;
+    const message = payload?.error?.message || "Download failed.";
+    throw new Error(message);
+  }
+
+  const disposition = response.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="(.+)"/);
+  const filename = match?.[1] ?? input.key.split("/").filter(Boolean).pop() ?? "download";
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
