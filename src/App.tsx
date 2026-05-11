@@ -3,7 +3,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { BucketPanel } from "./features/buckets/BucketPanel";
 import { ObjectExplorer } from "./features/objects/ObjectExplorer";
 import { ProfileSidebar } from "./features/profiles/ProfileSidebar";
-import { downloadObject, listBuckets, listObjects, testConnection } from "./shared/api/s3Api";
+import {
+  deleteFolder,
+  deleteObject,
+  downloadObject,
+  listBuckets,
+  listObjects,
+  testConnection,
+} from "./shared/api/s3Api";
 import { useProfilesStorage } from "./shared/hooks/useProfilesStorage";
 import type {
   BucketItem,
@@ -75,6 +82,8 @@ export function App() {
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [isNextPage, setIsNextPage] = useState(false);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -357,6 +366,74 @@ export function App() {
     }
   };
 
+  const onDeleteFile = async (key: string) => {
+    if (!selectedBucket || !profileValid) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete "${key}"? This cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingKey(key);
+    setStatusError("");
+
+    try {
+      await deleteObject({
+        profile: profilePayload(),
+        bucket: selectedBucket,
+        key,
+      });
+      setStatusMessage(`Deleted ${key}.`);
+      await loadObjects({
+        bucket: selectedBucket,
+        targetPrefix: prefix,
+        continuationToken: null,
+      });
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Delete failed.");
+      setStatusMessage("");
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
+  const onDeleteFolder = async (folderPrefix: string) => {
+    if (!selectedBucket || !profileValid) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete folder "${folderPrefix}" and ALL its contents? This cannot be undone.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingFolder(folderPrefix);
+    setStatusError("");
+
+    try {
+      const result = await deleteFolder({
+        profile: profilePayload(),
+        bucket: selectedBucket,
+        prefix: folderPrefix,
+      });
+      setStatusMessage(`Deleted ${result.count} object(s) under ${folderPrefix}.`);
+      await loadObjects({
+        bucket: selectedBucket,
+        targetPrefix: prefix,
+        continuationToken: null,
+      });
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Folder delete failed.");
+      setStatusMessage("");
+    } finally {
+      setDeletingFolder(null);
+    }
+  };
+
   return (
     <div className="app-shell">
       <ProfileSidebar
@@ -405,6 +482,10 @@ export function App() {
           onNavigatePrefix={onNavigatePrefix}
           onDownloadFile={onDownloadFile}
           downloadingKey={downloadingKey}
+          onDeleteFile={onDeleteFile}
+          deletingKey={deletingKey}
+          onDeleteFolder={onDeleteFolder}
+          deletingFolder={deletingFolder}
         />
       </main>
     </div>

@@ -419,8 +419,23 @@ button:disabled {
   border-bottom: 0;
 }
 
-.object-row.folder {
+.folder-open {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
+  font: inherit;
+}
+
+.folder-open:hover {
+  color: var(--accent);
+}
+
+.folder-open:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
 }
 
 .object-name {
@@ -434,20 +449,38 @@ button:disabled {
   white-space: nowrap;
 }
 
-.download-button {
+.object-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.download-button,
+.row-delete-button {
   border: 1px solid var(--panel-border);
   border-radius: 7px;
   padding: 0.3rem 0.6rem;
   background: #fff;
-  color: var(--accent);
   font-size: 0.8rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s ease;
 }
 
+.download-button {
+  color: var(--accent);
+}
+
+.row-delete-button {
+  color: var(--danger);
+}
+
 .download-button:hover {
   background: var(--accent-soft);
+}
+
+.row-delete-button:hover {
+  background: #fdecec;
 }
 
 @media (max-width: 1020px) {

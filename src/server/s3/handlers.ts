@@ -1,4 +1,6 @@
 import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   ListBucketsCommand,
   ListObjectsV2Command,
@@ -7,7 +9,14 @@ import {
 import { fail, ok } from "../http/response";
 import { createS3Client } from "./client";
 import { mapListBucketsResult, mapListObjectsResult, mapS3Error } from "./mappers";
-import { invalidProfileError, parseDownloadInput, parseListObjectsInput, parseProfileFromBody } from "./validate";
+import {
+  invalidProfileError,
+  parseDeleteFolderInput,
+  parseDeleteInput,
+  parseDownloadInput,
+  parseListObjectsInput,
+  parseProfileFromBody,
+} from "./validate";
 
 async function parseJsonBody(req: Request): Promise<unknown> {
   try {
@@ -128,6 +137,91 @@ export async function downloadObjectHandler(req: Request): Promise<Response> {
         ...(result.ContentLength != null ? { "Content-Length": String(result.ContentLength) } : {}),
       },
     });
+  } catch (err) {
+    return fail(400, mapS3Error(err));
+  }
+}
+
+export async function deleteObjectHandler(req: Request): Promise<Response> {
+  const body = await parseJsonBody(req);
+  const parsed = parseDeleteInput(body);
+
+  if (!parsed.ok) {
+    return fail(400, parsed.error);
+  }
+
+  const { profile, bucket, key } = parsed.data;
+  const client = createS3Client(profile);
+
+  try {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+
+    return ok({ deleted: true, key });
+  } catch (err) {
+    return fail(400, mapS3Error(err));
+  }
+}
+
+export async function deleteFolderHandler(req: Request): Promise<Response> {
+  const body = await parseJsonBody(req);
+  const parsed = parseDeleteFolderInput(body);
+
+  if (!parsed.ok) {
+    return fail(400, parsed.error);
+  }
+
+  const { profile, bucket, prefix } = parsed.data;
+  const client = createS3Client(profile);
+
+  try {
+    let continuationToken: string | undefined;
+    let deletedCount = 0;
+
+    do {
+      const listResult = await client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const keys = (listResult.Contents ?? [])
+        .map(item => item.Key)
+        .filter((value): value is string => Boolean(value));
+
+      if (keys.length > 0) {
+        const deleteResult = await client.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: {
+              Objects: keys.map(Key => ({ Key })),
+              Quiet: true,
+            },
+          }),
+        );
+
+        const errors = deleteResult.Errors ?? [];
+        if (errors.length > 0) {
+          const first = errors[0];
+          return fail(400, {
+            message: first?.Message || "Failed to delete one or more objects.",
+            code: first?.Code || "DeleteObjectsError",
+          });
+        }
+
+        deletedCount += keys.length;
+      }
+
+      continuationToken = listResult.IsTruncated ? listResult.NextContinuationToken : undefined;
+    } while (continuationToken);
+
+    return ok({ deleted: true, prefix, count: deletedCount });
   } catch (err) {
     return fail(400, mapS3Error(err));
   }

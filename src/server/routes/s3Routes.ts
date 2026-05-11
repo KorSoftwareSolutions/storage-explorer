@@ -1,4 +1,6 @@
 import {
+  deleteFolderHandler,
+  deleteObjectHandler,
   downloadObjectHandler,
   listBucketsHandler,
   listObjectsHandler,
@@ -17,5 +19,11 @@ export const s3Routes = {
   },
   "/api/s3/download-object": {
     POST: downloadObjectHandler,
+  },
+  "/api/s3/delete-object": {
+    POST: deleteObjectHandler,
+  },
+  "/api/s3/delete-folder": {
+    POST: deleteFolderHandler,
   },
 };

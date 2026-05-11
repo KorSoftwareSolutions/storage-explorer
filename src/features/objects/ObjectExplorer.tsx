@@ -15,6 +15,10 @@ type ObjectExplorerProps = {
   onNavigatePrefix: (prefix: string) => void;
   onDownloadFile: (key: string) => void;
   downloadingKey: string | null;
+  onDeleteFile: (key: string) => void;
+  deletingKey: string | null;
+  onDeleteFolder: (folderPrefix: string) => void;
+  deletingFolder: string | null;
 };
 
 function formatObjectName(key: string, prefix: string): string {
@@ -48,6 +52,10 @@ export function ObjectExplorer(props: ObjectExplorerProps) {
     onNavigatePrefix,
     onDownloadFile,
     downloadingKey,
+    onDeleteFile,
+    deletingKey,
+    onDeleteFolder,
+    deletingFolder,
   } = props;
 
   return (
@@ -103,18 +111,28 @@ export function ObjectExplorer(props: ObjectExplorerProps) {
             )}
 
             {objects.folders.map(folder => (
-              <button
-                key={folder}
-                type="button"
-                className="object-row folder"
-                onClick={() => onOpenFolder(folder)}
-                disabled={loadingObjects}
-              >
-                <span className="object-name">{formatFolderName(folder, prefix)}/</span>
+              <div key={folder} className="object-row folder">
+                <button
+                  type="button"
+                  className="object-name folder-open"
+                  onClick={() => onOpenFolder(folder)}
+                  disabled={loadingObjects}
+                >
+                  {formatFolderName(folder, prefix)}/
+                </button>
                 <span className="object-meta">folder</span>
                 <span className="object-meta">-</span>
-                <span />
-              </button>
+                <div className="object-actions">
+                  <button
+                    type="button"
+                    className="row-delete-button"
+                    onClick={() => onDeleteFolder(folder)}
+                    disabled={deletingFolder === folder}
+                  >
+                    {deletingFolder === folder ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
             ))}
 
             {objects.files.map(file => (
@@ -124,14 +142,24 @@ export function ObjectExplorer(props: ObjectExplorerProps) {
                 <span className="object-meta">
                   {file.lastModified ? new Date(file.lastModified).toLocaleString() : "-"}
                 </span>
-                <button
-                  type="button"
-                  className="download-button"
-                  onClick={() => onDownloadFile(file.key)}
-                  disabled={downloadingKey === file.key}
-                >
-                  {downloadingKey === file.key ? "Downloading..." : "Download"}
-                </button>
+                <div className="object-actions">
+                  <button
+                    type="button"
+                    className="download-button"
+                    onClick={() => onDownloadFile(file.key)}
+                    disabled={downloadingKey === file.key}
+                  >
+                    {downloadingKey === file.key ? "Downloading..." : "Download"}
+                  </button>
+                  <button
+                    type="button"
+                    className="row-delete-button"
+                    onClick={() => onDeleteFile(file.key)}
+                    disabled={deletingKey === file.key}
+                  >
+                    {deletingKey === file.key ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
             ))}
           </>

@@ -84,3 +84,22 @@ export async function downloadObject(input: {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export function deleteObject(input: {
+  profile: S3ConnectionProfile;
+  bucket: string;
+  key: string;
+}): Promise<{ deleted: boolean; key: string }> {
+  return postJson<{ deleted: boolean; key: string }>("/api/s3/delete-object", input);
+}
+
+export function deleteFolder(input: {
+  profile: S3ConnectionProfile;
+  bucket: string;
+  prefix: string;
+}): Promise<{ deleted: boolean; prefix: string; count: number }> {
+  return postJson<{ deleted: boolean; prefix: string; count: number }>(
+    "/api/s3/delete-folder",
+    input,
+  );
+}

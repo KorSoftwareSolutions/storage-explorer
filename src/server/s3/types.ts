@@ -19,3 +19,15 @@ export type ParsedDownloadInput = {
   bucket: string;
   key: string;
 };
+
+export type ParsedDeleteInput = {
+  profile: S3ProfileInput;
+  bucket: string;
+  key: string;
+};
+
+export type ParsedDeleteFolderInput = {
+  profile: S3ProfileInput;
+  bucket: string;
+  prefix: string;
+};

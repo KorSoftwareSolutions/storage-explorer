@@ -1,5 +1,11 @@
 import type { ApiErrorPayload } from "../http/response";
-import type { ParsedDownloadInput, ParsedListObjectsInput, S3ProfileInput } from "./types";
+import type {
+  ParsedDeleteFolderInput,
+  ParsedDeleteInput,
+  ParsedDownloadInput,
+  ParsedListObjectsInput,
+  S3ProfileInput,
+} from "./types";
 
 function parseProfile(value: unknown): S3ProfileInput | null {
   if (typeof value !== "object" || value === null) {
@@ -130,6 +136,94 @@ export function parseDownloadInput(body: unknown):
   }
 
   return { ok: true, data: { profile, bucket, key } };
+}
+
+export function parseDeleteInput(body: unknown):
+  | { ok: true; data: ParsedDeleteInput }
+  | { ok: false; error: ApiErrorPayload } {
+  const record = body as
+    | { profile?: unknown; bucket?: unknown; key?: unknown }
+    | null;
+
+  const profile = parseProfile(record?.profile);
+  if (!profile) {
+    return {
+      ok: false,
+      error: {
+        message: "Invalid profile. endpoint, accessKeyId, and secretAccessKey are required.",
+        code: "InvalidProfile",
+      },
+    };
+  }
+
+  const bucket = typeof record?.bucket === "string" ? record.bucket.trim() : "";
+  if (!bucket) {
+    return {
+      ok: false,
+      error: { message: "Bucket is required.", code: "MissingBucket" },
+    };
+  }
+
+  const key = typeof record?.key === "string" ? record.key.trim() : "";
+  if (!key) {
+    return {
+      ok: false,
+      error: { message: "Object key is required.", code: "MissingKey" },
+    };
+  }
+
+  return { ok: true, data: { profile, bucket, key } };
+}
+
+export function parseDeleteFolderInput(body: unknown):
+  | { ok: true; data: ParsedDeleteFolderInput }
+  | { ok: false; error: ApiErrorPayload } {
+  const record = body as
+    | { profile?: unknown; bucket?: unknown; prefix?: unknown }
+    | null;
+
+  const profile = parseProfile(record?.profile);
+  if (!profile) {
+    return {
+      ok: false,
+      error: {
+        message: "Invalid profile. endpoint, accessKeyId, and secretAccessKey are required.",
+        code: "InvalidProfile",
+      },
+    };
+  }
+
+  const bucket = typeof record?.bucket === "string" ? record.bucket.trim() : "";
+  if (!bucket) {
+    return {
+      ok: false,
+      error: { message: "Bucket is required.", code: "MissingBucket" },
+    };
+  }
+
+  const prefixRaw = typeof record?.prefix === "string" ? record.prefix : "";
+  const prefix = prefixRaw.trim();
+  if (!prefix) {
+    return {
+      ok: false,
+      error: {
+        message: "Folder prefix is required.",
+        code: "MissingPrefix",
+      },
+    };
+  }
+
+  if (!prefix.endsWith("/")) {
+    return {
+      ok: false,
+      error: {
+        message: "Folder prefix must end with '/'.",
+        code: "InvalidPrefix",
+      },
+    };
+  }
+
+  return { ok: true, data: { profile, bucket, prefix } };
 }
 
 export function invalidProfileError(): ApiErrorPayload {
